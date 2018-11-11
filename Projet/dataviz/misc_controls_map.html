@@ -32,11 +32,38 @@
 
 		<script src="three.js"></script>
 		<script src="MapControls.js"></script>
-		<script src="WebGL.js"></script>
+    <script src="WebGL.js"></script>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://unpkg.com/d3-simple-slider"></script>
+
+    <p id="value" hidden></p>
+    <div id="slider"></div>
 
 		<script src='dat.gui.min.js'></script>
 
 		<script>
+      var meshes = []
+      /** @see https://github.com/johnwalley/d3-simple-slider */
+      var slider = d3.sliderHorizontal()
+        .min(0)
+        .max(100)
+        .step(10)
+        .width(1000)
+        .displayValue(false)
+        .on('onchange', val => {
+          for (let i = 0; i < meshes.length; ++i) {
+            meshes[i].scale.y += val - d3.select("#value").text();
+          }
+          d3.select("#value").text(val);
+        });
+    
+      d3.select("#slider").append("svg")
+        .attr("width", 1200)
+        .attr("height", 100)
+        .append("g")
+        .attr("transform", "translate(30,30)")
+        .call(slider);
+
 			if ( WEBGL.isWebGLAvailable() === false ) {
 				document.body.appendChild( WEBGL.getWebGLErrorMessage() );
 			}
@@ -79,6 +106,7 @@
 				img.onload = function() {
 
 					let canvas = document.createElement('canvas');
+          canvas.height = canvas.width = 1000
 				  let context = canvas.getContext('2d');
 				  context.drawImage(img, 0, 0);
 
@@ -96,12 +124,12 @@
 							mesh.scale.y = power_law(Math.random());
 							mesh.scale.z = 1;
 							mesh.updateMatrix();
-							mesh.matrixAutoUpdate = false;
+							//mesh.matrixAutoUpdate = false;
+              meshes.push(mesh);
 							scene.add( mesh );
 						}
 					}
-
-
+          
 					let geometry2 = new THREE.PlaneGeometry( 1000, 1000 );
 
 					let texture = new THREE.CanvasTexture( canvas);
