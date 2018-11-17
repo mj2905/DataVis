@@ -35,7 +35,7 @@
 		<script src="MapControls.js"></script>
 		<script src="WebGL.js"></script>
 		<script src="SubdivisionModifier.js"></script>
-		<script src="https://d3js.org/d3.v5.min.js"></script>
+		<script src="d3.min.js"></script>
 
 		<script src='dat.gui.min.js'></script>
 
@@ -50,24 +50,30 @@
 
 
 			let tot_images = 145;
-			let steps = 20;
+			let steps = 3;
 			let plane_images = new Array();
 			let back_images = new Array();
-			function preload_heights() {
-				for (i = 0; i < tot_images; i++) {
-					plane_images[i] = new Image()
-					plane_images[i].src = 'levelmaps/global/' + (i < 10 ? '0' + i : '' + i ) + '.png'
-				}
-			}
-			preload_heights()
 
-			function preload_backs() {
-				for (i = 0; i < tot_images; i++) {
-					back_images[i] = new Image()
+			function preload() {
+				for (let i = 0; i < tot_images; i++) {
+					let im = new Image();
+					im.i = i;
+					im.onload = function() {
+						let canvas = document.createElement('canvas');
+						canvas.width = 200;
+						canvas.height = 200;
+					  let context = canvas.getContext('2d');
+					  context.drawImage(this, 0, 0);
+
+						plane_images[this.i] = context.getImageData(0, 0, 200, 200).data;
+					};
+					im.src = 'levelmaps/global/' + (i < 10 ? '0' + i : '' + i ) + '.png';
+
+					back_images[i] = new Image();
 					back_images[i].src = 'frames/' + i*2 + '.png'
 				}
 			}
-			preload_backs()
+			preload()
 
 
 
@@ -170,7 +176,8 @@
 					*/
 
 
-					planeGeometry = new THREE.PlaneGeometry( 1000, 1000, 199, 199);
+					//planeGeometry = new THREE.PlaneGeometry( 1000, 1000, 199, 199);
+					planeGeometry = new THREE.PlaneBufferGeometry( 1000, 1000, 199, 199 );
 
 					//let texture2 = new THREE.TextureLoader().load( "rplace.png" );//new THREE.CanvasTexture( canvas);
 					//texture2.minFilter = THREE.NearestFilter;
@@ -190,12 +197,12 @@
 					//texture3.maxFilter = THREE.LinearFilter;
 					//let material3 = new THREE.MeshBasicMaterial( { map: texture3} );
 
-					var plane3 = new THREE.Mesh( planeGeometry, planeMaterial );
-					plane3.rotateX(-Math.PI/2);
+					var planeMesh = new THREE.Mesh( planeGeometry, planeMaterial );
+					planeMesh.rotateX(-Math.PI/2);
 					//generatePlaneHeights();
-					plane3.matrixAutoUpdate  = true;
-					plane3.updateMatrix();
-					scene.add( plane3 );
+					planeMesh.matrixAutoUpdate  = true;
+					planeMesh.updateMatrix();
+					scene.add( planeMesh );
 
 					// lights
 					var light = new THREE.DirectionalLight( 0xffffff );
@@ -235,10 +242,10 @@
 				render();
 
 				if(index_plane % steps == 0) {
-					generatePlaneHeights(index_plane / steps);
+					generatePlaneHeightsBuffered(index_plane / steps);
 					showBackground(index_plane / steps);
 				}
-				index_plane = (index_plane + 1) % (144*steps);
+				index_plane = (index_plane + 1) % (tot_images*steps);
 			}
 
 			function showBackground(index) {
@@ -247,6 +254,31 @@
 				textr.magFilter = THREE.NearestFilter;
 				planeMaterial.map = textr;
 				planeMaterial.needsUpdate = true;
+			}
+
+			function generatePlaneHeightsBuffered(index) {
+				if(planeGeometry) {
+
+					if(plane_images[index]) {
+
+						let positions = planeGeometry.attributes.position.array;
+
+						//Top left is -500, 500
+						//Bottom right is 500, -500
+						///!\ <=, not <
+						for(let i = 0; i < 200; ++i) {
+							for(let j = 0; j < 200; ++j) {
+								//let height = context.getImageData(i, j, 1, 1).data[0]; //red = blue = green
+								positions[(i + j * 200)*3 + 2] = plane_images[index][(i + j * 200)*4];
+							}
+							//planeGeometry.vertices[i].z = sinus(planeGeometry.vertices[i].x, planeGeometry.vertices[i].y) *10;
+						}
+
+
+						planeGeometry.attributes.position.needsUpdate = true;
+					}
+
+				}
 			}
 
 			function generatePlaneHeights(index) {
@@ -258,9 +290,6 @@
 					canvas.height = 200;
 				  let context = canvas.getContext('2d');
 				  context.drawImage(plane_images[index], 0, 0);
-
-					planeGeometry.vertices[0].z = 100;
-
 
 					//Top left is -500, 500
 					//Bottom right is 500, -500
