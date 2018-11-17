@@ -50,10 +50,27 @@
 
 
 			let tot_images = 145;
-			let steps = 10;
+			let steps = 15;
 			let plane_images = new Array();
 			let back_images = new Array();
-			let interpolator;
+			let interpolator_images;
+
+			let interpolator_height = x => x;
+			let interpolator_heights = new Array();
+
+			d3.json("levelmaps/global/index.json").then(function(data) {
+				console.log()
+				let max = 0;
+				let jsonValues = Object.values(data);
+
+				for(let i = 0; i < tot_images; ++i) {
+					interpolator_heights[i] = d3.scaleLinear().domain([0,255]).range([0,parseFloat(jsonValues[i].max)]);
+					max = Math.max(max, parseFloat(jsonValues[i].max));
+				}
+
+				interpolator_height = d3.scaleLinear().domain([0, max]).range([0, 100]);
+
+			});
 
 			function preload() {
 				for (let i = 0; i < tot_images; i++) {
@@ -66,7 +83,12 @@
 					  let context = canvas.getContext('2d');
 					  context.drawImage(this, 0, 0);
 
-						plane_images[this.i] = context.getImageData(0, 0, 200, 200).data;
+						let data = context.getImageData(0, 0, 200, 200).data;
+						for(let j = 0; j < data.length; ++j) {
+							data[j] = interpolator_heights[this.i](data[j]);
+						}
+
+						plane_images[this.i] = data;
 					};
 					im.src = 'levelmaps/global/' + (i < 10 ? '0' + i : '' + i ) + '.png';
 
@@ -245,7 +267,7 @@
 
 					let index = index_plane/steps;
 
-					interpolator = d3.interpolateArray(plane_images[index], plane_images[(index+1)%tot_images]);
+					interpolator_images = d3.interpolateArray(plane_images[index], plane_images[(index+1)%tot_images]);
 
 					showBackground(index_plane / steps);
 				}
@@ -266,7 +288,7 @@
 				if(planeGeometry) {
 
 					let positions = planeGeometry.attributes.position.array;
-					let arr = interpolator((index_plane % steps)/steps);
+					let arr = interpolator_images((index_plane % steps)/steps);
 
 					//Top left is -500, 500
 					//Bottom right is 500, -500
@@ -274,7 +296,7 @@
 					for(let i = 0; i < 200; ++i) {
 						for(let j = 0; j < 200; ++j) {
 							//let height = context.getImageData(i, j, 1, 1).data[0]; //red = blue = green
-							positions[(i + j * 200)*3 + 2] = arr[(i + j * 200)*4];
+							positions[(i + j * 200)*3 + 2] = interpolator_height(arr[(i + j * 200)*4]);
 						}
 						//planeGeometry.vertices[i].z = sinus(planeGeometry.vertices[i].x, planeGeometry.vertices[i].y) *10;
 					}
