@@ -49,8 +49,10 @@
 			let index_plane = 0;
 
 
-			let tot_images = 145;
-			let steps = 15;
+			const tot_images = 145;
+			const filterSize = 200;
+			const steps = 15;
+
 			let plane_images = new Array();
 			let back_images = new Array();
 			let interpolator_images;
@@ -68,8 +70,12 @@
 					max = Math.max(max, parseFloat(jsonValues[i].max));
 				}
 
-				interpolator_height = d3.scaleLinear().domain([0, max]).range([0, 100]);
+				interpolator_height = d3.scaleLinear().domain([0, max]).range([0, 200]);
 
+
+				preload()
+				init();
+				animate();
 			});
 
 			function preload() {
@@ -78,12 +84,12 @@
 					im.i = i;
 					im.onload = function() {
 						let canvas = document.createElement('canvas');
-						canvas.width = 200;
-						canvas.height = 200;
+						canvas.width = filterSize;
+						canvas.height = filterSize;
 					  let context = canvas.getContext('2d');
 					  context.drawImage(this, 0, 0);
 
-						let data = context.getImageData(0, 0, 200, 200).data;
+						let data = context.getImageData(0, 0, filterSize, filterSize).data;
 						for(let j = 0; j < data.length; ++j) {
 							data[j] = interpolator_heights[this.i](data[j]);
 						}
@@ -96,14 +102,9 @@
 					back_images[i].src = 'frames/' + i*2 + '.png'
 				}
 			}
-			preload()
 
 
 
-
-			init();
-			//render(); // remove when using next line for animation loop (requestAnimationFrame)
-			animate();
 			function init() {
 
 				scene = new THREE.Scene();
@@ -200,7 +201,7 @@
 
 
 					//planeGeometry = new THREE.PlaneGeometry( 1000, 1000, 199, 199);
-					planeGeometry = new THREE.PlaneBufferGeometry( 1000, 1000, 199, 199 );
+					planeGeometry = new THREE.PlaneBufferGeometry( 1000, 1000, 400, 400 );
 
 					//let texture2 = new THREE.TextureLoader().load( "rplace.png" );//new THREE.CanvasTexture( canvas);
 					//texture2.minFilter = THREE.NearestFilter;
@@ -263,17 +264,20 @@
 				controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
 				render();
 
+				//if(index_plane == 0) {
 				if(index_plane % steps == 0) {
-
 					let index = index_plane/steps;
-
-					interpolator_images = d3.interpolateArray(plane_images[index], plane_images[(index+1)%tot_images]);
-
-					showBackground(index_plane / steps);
+					if(plane_images[index] && plane_images[(index+1)%tot_images]) {
+						interpolator_images = d3.interpolateArray(plane_images[index], plane_images[(index+1)%tot_images]);
+						showBackground(index_plane / steps);
+					}
 				}
 
-				generatePlaneHeightsBuffered();
-				index_plane = (index_plane + 1) % (tot_images*steps);
+				if(interpolator_images) {
+					generatePlaneHeightsBuffered();
+				}
+
+				index_plane = (index_plane + 1) % (tot_images*steps);//}
 			}
 
 			function showBackground(index) {
@@ -293,10 +297,14 @@
 					//Top left is -500, 500
 					//Bottom right is 500, -500
 					///!\ <=, not <
-					for(let i = 0; i < 200; ++i) {
-						for(let j = 0; j < 200; ++j) {
+					const twoFSP1 = 2 * filterSize + 1;
+					for(let i = 0; i < filterSize; i++) {
+						for(let j = 0; j < filterSize; j++) {
+
+							const iIm = i * 2 + 1;
+							const jIm = j * 2 + 1;
 							//let height = context.getImageData(i, j, 1, 1).data[0]; //red = blue = green
-							positions[(i + j * 200)*3 + 2] = interpolator_height(arr[(i + j * 200)*4]);
+							positions[(iIm + jIm * twoFSP1)*3 + 2] = interpolator_height(arr[(i + j * 200)*4]);
 						}
 						//planeGeometry.vertices[i].z = sinus(planeGeometry.vertices[i].x, planeGeometry.vertices[i].y) *10;
 					}
