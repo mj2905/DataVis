@@ -22,6 +22,7 @@
 				padding: 5px;
 				box-sizing: border-box;
 			}
+
 			a {
 				color: red;
 			}
@@ -32,42 +33,45 @@
 
 		<script src="three.js"></script>
 		<script src="MapControls.js"></script>
-    <script src="WebGL.js"></script>
-    <script src="https://d3js.org/d3.v4.js"></script>
-    <script src="https://unpkg.com/d3-simple-slider"></script>
-
-    <p id="value" hidden></p>
-    <div id="slider"></div>
+		<script src="WebGL.js"></script>
+		<script src="SubdivisionModifier.js"></script>
+		<script src="https://d3js.org/d3.v5.min.js"></script>
 
 		<script src='dat.gui.min.js'></script>
 
 		<script>
-      var meshes = []
-      /** @see https://github.com/johnwalley/d3-simple-slider */
-      var slider = d3.sliderHorizontal()
-        .min(0)
-        .max(100)
-        .step(10)
-        .width(1000)
-        .displayValue(false)
-        .on('onchange', val => {
-          for (let i = 0; i < meshes.length; ++i) {
-            meshes[i].scale.y += val - d3.select("#value").text();
-          }
-          d3.select("#value").text(val);
-        });
-    
-      d3.select("#slider").append("svg")
-        .attr("width", 1200)
-        .attr("height", 100)
-        .append("g")
-        .attr("transform", "translate(30,30)")
-        .call(slider);
-
 			if ( WEBGL.isWebGLAvailable() === false ) {
 				document.body.appendChild( WEBGL.getWebGLErrorMessage() );
 			}
 			var camera, controls, scene, renderer;
+			let planeGeometry;
+			let planeMaterial;
+			let index_plane = 0;
+
+
+			let tot_images = 145;
+			let steps = 20;
+			let plane_images = new Array();
+			let back_images = new Array();
+			function preload_heights() {
+				for (i = 0; i < tot_images; i++) {
+					plane_images[i] = new Image()
+					plane_images[i].src = 'levelmaps/global/' + (i < 10 ? '0' + i : '' + i ) + '.png'
+				}
+			}
+			preload_heights()
+
+			function preload_backs() {
+				for (i = 0; i < tot_images; i++) {
+					back_images[i] = new Image()
+					back_images[i].src = 'frames/' + i*2 + '.png'
+				}
+			}
+			preload_backs()
+
+
+
+
 			init();
 			//render(); // remove when using next line for animation loop (requestAnimationFrame)
 			animate();
@@ -77,7 +81,7 @@
 				scene.background = new THREE.Color( 0x333333 );
 
 				scene.fog = new THREE.FogExp2( 0x555555, 0.001 );
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer = new THREE.WebGLRenderer(); //{ antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				document.body.appendChild( renderer.domElement );
@@ -97,50 +101,101 @@
 				controls.maxDistance = 500;
 				controls.maxPolarAngle = Math.PI / 2;
 				// world
-				var geometry = new THREE.BoxBufferGeometry( 1, 1, 1 );
+
+
+				/*
+				var geometry = new THREE.BoxGeometry( 1, 1, 1, 2, 2, 2 );
 				geometry.translate( 0, 0.5, 0 );
+				let subDiv = new SubdivisionModifier( 3 ); // Number of subdivisions
+				subDiv.modify( geometry );
+				*/
+
+
+				//geometry.translate( 0, 0.5, 0 );
 				//let material = new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true, /*transparent: true, opacity: 0.9, alphaTest = 0opacity x originalAlphaTest*/} );
 
-				let img = new Image();
+				//let img = new Image();
 
-				img.onload = function() {
-
+				//img.onload = function() {
+					/*
 					let canvas = document.createElement('canvas');
-          canvas.height = canvas.width = 1000
+					canvas.width = 1000;
+					canvas.height = 1000;
+					canvas.className = 'can_back';
 				  let context = canvas.getContext('2d');
 				  context.drawImage(img, 0, 0);
+					*/
 
-					for ( let i = 0; i < 1000; i += 8 ) {
-						for(let j = 0; j < 1000; j += 8) {
-
+					/*
+					for ( let i = 0; i < 1000; i += 100 ) {
+						for(let j = 0; j < 1000; j += 100) {
+*/
+							/*let geometryLine = new THREE.Geometry();
+							geometryLine.translate( 0, 0.5, 0 );
+							geometryLine.vertices.push( new THREE.Vector3(i - 500 + 0.5,0,j - 500 + 0.5) )
+					    geometryLine.vertices.push( new THREE.Vector3(i - 500 + 0.5,power_law(Math.random()),j - 500 + 0.5) )*/
+/*
 							let tmp = context.getImageData(i, j, 1, 1).data;
-							let material = new THREE.MeshBasicMaterial( { color:new THREE.Color(`rgb(${tmp[0]},${tmp[1]},${tmp[2]})`),  flatShading: true} );
+							let material = new THREE.MeshPhongMaterial( { color:new THREE.Color(`rgb(${tmp[0]},${tmp[1]},${tmp[2]})`),  flatShading: true} );//new THREE.LineBasicMaterial({color:new THREE.Color(`rgb(${tmp[0]},${tmp[1]},${tmp[2]})`), linewidth: 2, fog:true});//new THREE.MeshBasicMaterial( { color:new THREE.Color(`rgb(${tmp[0]},${tmp[1]},${tmp[2]})`),  flatShading: true} );
 
 							var mesh = new THREE.Mesh( geometry, material );
-							mesh.position.x = i - 500 + 0.5;//Math.random() * 1600 - 800;
+							//mesh = new THREE.Line( geometryLine,  material );
+							mesh.position.x = i - 500 + 10;//Math.random() * 1600 - 800;
 							mesh.position.y = 0;
-							mesh.position.z = j - 500 + 0.5;//Math.random() * 1600 - 800;
-							mesh.scale.x = 1;
-							mesh.scale.y = power_law(Math.random());
-							mesh.scale.z = 1;
+							mesh.position.z = j - 500 + 10;//Math.random() * 1600 - 800;
+							mesh.scale.x = 20;
+							mesh.scale.y = power_law(Math.random()) * 10;
+							mesh.scale.z = 20;
 							mesh.updateMatrix();
-							//mesh.matrixAutoUpdate = false;
-              meshes.push(mesh);
+							mesh.matrixAutoUpdate = false;
 							scene.add( mesh );
 						}
 					}
-          
+
+
+
 					let geometry2 = new THREE.PlaneGeometry( 1000, 1000 );
 
-					let texture = new THREE.CanvasTexture( canvas);
-					texture.minFilter = THREE.LinearFilter;
-					let material2 = new THREE.MeshBasicMaterial( { map: texture} );
+					let texture2 = new THREE.CanvasTexture( canvas);
+					//let texture = new THREE.TextureLoader().load('rplace.png');
+					texture2.minFilter = THREE.LinearFilter;
+					texture2.maxFilter = THREE.LinearFilter;
+					let material2 = new THREE.MeshBasicMaterial( { map: texture2} );
 
-					var plane = new THREE.Mesh( geometry2, material2 );
-					plane.rotateX(-Math.PI/2);
-					plane.matrixAutoUpdate  = false;
-					plane.updateMatrix();
-					scene.add( plane );
+					var plane2 = new THREE.Mesh( geometry2, material2 );
+					plane2.rotateX(-Math.PI/2);
+					plane2.matrixAutoUpdate  = false;
+					plane2.updateMatrix();
+					//scene.add( plane2 );
+					*/
+
+
+					planeGeometry = new THREE.PlaneGeometry( 1000, 1000, 199, 199);
+
+					//let texture2 = new THREE.TextureLoader().load( "rplace.png" );//new THREE.CanvasTexture( canvas);
+					//texture2.minFilter = THREE.NearestFilter;
+					//texture2.magFilter = THREE.NearestFilter;
+
+					planeMaterial = new THREE.MeshPhongMaterial({
+					    //color: 0xff0000,
+					    //wireframe: true,
+							//transparent: false,
+							specular: 0,
+							shininess:0,
+							//opacity: 1,
+							//map: texture2
+					});
+					//let texture = new THREE.TextureLoader().load('rplace.png');
+					//texture3.minFilter = THREE.LinearFilter;
+					//texture3.maxFilter = THREE.LinearFilter;
+					//let material3 = new THREE.MeshBasicMaterial( { map: texture3} );
+
+					var plane3 = new THREE.Mesh( planeGeometry, planeMaterial );
+					plane3.rotateX(-Math.PI/2);
+					//generatePlaneHeights();
+					plane3.matrixAutoUpdate  = true;
+					plane3.updateMatrix();
+					scene.add( plane3 );
 
 					// lights
 					var light = new THREE.DirectionalLight( 0xffffff );
@@ -153,9 +208,9 @@
 					scene.add( light );
 					//
 					window.addEventListener( 'resize', onWindowResize, false );
-				}
+				//}
 
-				img.src = 'rplace.png';
+				//img.src = 'rplace.png';
 				/*
 				var gui = new dat.GUI();
 				gui.add( controls, 'screenSpacePanning' );
@@ -173,16 +228,72 @@
 				camera.updateProjectionMatrix();
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
+
 			function animate() {
 				requestAnimationFrame( animate );
 				controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
 				render();
+
+				if(index_plane % steps == 0) {
+					generatePlaneHeights(index_plane / steps);
+					showBackground(index_plane / steps);
+				}
+				index_plane = (index_plane + 1) % (144*steps);
 			}
+
+			function showBackground(index) {
+				let textr = new THREE.CanvasTexture( back_images[index]);//THREE.ImageUtils.loadTexture( src );
+				textr.minFilter = THREE.NearestFilter;
+				textr.magFilter = THREE.NearestFilter;
+				planeMaterial.map = textr;
+				planeMaterial.needsUpdate = true;
+			}
+
+			function generatePlaneHeights(index) {
+
+				if(planeGeometry) {
+
+					let canvas = document.createElement('canvas');
+					canvas.width = 200;
+					canvas.height = 200;
+				  let context = canvas.getContext('2d');
+				  context.drawImage(plane_images[index], 0, 0);
+
+					planeGeometry.vertices[0].z = 100;
+
+
+					//Top left is -500, 500
+					//Bottom right is 500, -500
+					///!\ <=, not <
+					for(let i = 0; i < 200; ++i) {
+						for(let j = 0; j < 200; ++j) {
+							let height = context.getImageData(i, j, 1, 1).data[0]; //red = blue = green
+							planeGeometry.vertices[i + j * 200].z = height;
+						}
+						//planeGeometry.vertices[i].z = sinus(planeGeometry.vertices[i].x, planeGeometry.vertices[i].y) *10;
+					}
+
+					planeGeometry.computeFaceNormals();
+					planeGeometry.computeVertexNormals();
+					planeGeometry.verticesNeedUpdate = true;
+
+				}
+			}
+
+
+
 			function render() {
 				renderer.render( scene, camera );
 			}
-			function power_law(y, gamma = 3.0, k_min = 2, k_max = 80.0) {
+
+			function power_law(x, y) {
 				return k_min * Math.pow(1-y, -1/(gamma-1));
+			}
+
+			function sinus(x, y, f = 0.003) {
+				let d = new Date();
+				let n = d.getTime() /100.0 % (2 * Math.PI);
+				return Math.sin(2 * Math.PI * f * x + n) * Math.sin(2 * Math.PI * f *x  + n) + Math.sin(2 * Math.PI * f *y + n) * Math.sin(2 * Math.PI * f *y + n);
 			}
 
 		</script>
