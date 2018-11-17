@@ -50,9 +50,10 @@
 
 
 			let tot_images = 145;
-			let steps = 3;
+			let steps = 10;
 			let plane_images = new Array();
 			let back_images = new Array();
+			let interpolator;
 
 			function preload() {
 				for (let i = 0; i < tot_images; i++) {
@@ -188,7 +189,6 @@
 					    //wireframe: true,
 							//transparent: false,
 							specular: 0,
-							shininess:0,
 							//opacity: 1,
 							//map: texture2
 					});
@@ -242,9 +242,15 @@
 				render();
 
 				if(index_plane % steps == 0) {
-					generatePlaneHeightsBuffered(index_plane / steps);
+
+					let index = index_plane/steps;
+
+					interpolator = d3.interpolateArray(plane_images[index], plane_images[(index+1)%tot_images]);
+
 					showBackground(index_plane / steps);
 				}
+
+				generatePlaneHeightsBuffered();
 				index_plane = (index_plane + 1) % (tot_images*steps);
 			}
 
@@ -256,27 +262,25 @@
 				planeMaterial.needsUpdate = true;
 			}
 
-			function generatePlaneHeightsBuffered(index) {
+			function generatePlaneHeightsBuffered() {
 				if(planeGeometry) {
 
-					if(plane_images[index]) {
+					let positions = planeGeometry.attributes.position.array;
+					let arr = interpolator((index_plane % steps)/steps);
 
-						let positions = planeGeometry.attributes.position.array;
-
-						//Top left is -500, 500
-						//Bottom right is 500, -500
-						///!\ <=, not <
-						for(let i = 0; i < 200; ++i) {
-							for(let j = 0; j < 200; ++j) {
-								//let height = context.getImageData(i, j, 1, 1).data[0]; //red = blue = green
-								positions[(i + j * 200)*3 + 2] = plane_images[index][(i + j * 200)*4];
-							}
-							//planeGeometry.vertices[i].z = sinus(planeGeometry.vertices[i].x, planeGeometry.vertices[i].y) *10;
+					//Top left is -500, 500
+					//Bottom right is 500, -500
+					///!\ <=, not <
+					for(let i = 0; i < 200; ++i) {
+						for(let j = 0; j < 200; ++j) {
+							//let height = context.getImageData(i, j, 1, 1).data[0]; //red = blue = green
+							positions[(i + j * 200)*3 + 2] = arr[(i + j * 200)*4];
 						}
-
-
-						planeGeometry.attributes.position.needsUpdate = true;
+						//planeGeometry.vertices[i].z = sinus(planeGeometry.vertices[i].x, planeGeometry.vertices[i].y) *10;
 					}
+
+
+					planeGeometry.attributes.position.needsUpdate = true;
 
 				}
 			}
