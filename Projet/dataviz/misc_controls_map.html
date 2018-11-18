@@ -63,7 +63,7 @@
 			d3.json("levelmaps/global/index.json").then(function(data) {
 				console.log()
 				let max = 0;
-				let jsonValues = Object.values(data);
+				let jsonValues = Object.values(data['null']);
 
 				for(let i = 0; i < tot_images; ++i) {
 					interpolator_heights[i] = d3.scaleLinear().domain([0,255]).range([0,parseFloat(jsonValues[i].max)]);
@@ -96,7 +96,7 @@
 
 						plane_images[this.i] = data;
 					};
-					im.src = 'levelmaps/global/' + (i < 10 ? '0' + i : '' + i ) + '.png';
+					im.src = 'levelmaps/global/' + i + '.png';
 
 					back_images[i] = new Image();
 					back_images[i].src = 'frames/' + i*2 + '.png'
