@@ -180,6 +180,10 @@ THREE.MapControls = function ( object, domElement ) {
 
 			position.copy( scope.target ).add( offset );
 
+			scope.target.x = Math.min(500, scope.target.x);
+			scope.target.x = Math.max(-500, scope.target.x);
+			scope.target.z = Math.min(500, scope.target.z);
+			scope.target.z = Math.max(-500, scope.target.z);
 			scope.object.lookAt( scope.target );
 
 			if ( scope.enableDamping === true ) {
