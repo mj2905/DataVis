@@ -122,14 +122,25 @@
 				//camera.zoom = 1.2;
 				//camera.updateProjectionMatrix();
 				// controls
+
 				controls = new THREE.MapControls( camera, renderer.domElement );
+				//controls = new THREE.OrbitControls( camera, renderer.domElement );
+
 				//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
 				controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-				controls.dampingFactor = 0.25;
+
+				//controls.enablePan = false;
+
 				controls.screenSpacePanning = false;
-				controls.minDistance = 100;
+				controls.minDistance = 1;
 				controls.maxDistance = 500;
-				controls.maxPolarAngle = Math.PI / 2;
+
+				controls.minZoom = 1;
+				controls.maxZoom = 10;
+
+				controls.maxPolarAngle = Math.PI * 4.0/10.0;
+
+
 				// world
 
 
@@ -211,7 +222,7 @@
 					    //color: 0xff0000,
 					    //wireframe: true,
 							//transparent: false,
-							specular: 0,
+							//specular: 0,
 							//opacity: 1,
 							//map: texture2
 					});
@@ -238,6 +249,7 @@
 					scene.add( light );
 					//
 					window.addEventListener( 'resize', onWindowResize, false );
+
 				//}
 
 				//img.src = 'rplace.png';
@@ -261,7 +273,9 @@
 
 			function animate() {
 				requestAnimationFrame( animate );
+
 				controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+
 				render();
 
 				//if(index_plane == 0) {
